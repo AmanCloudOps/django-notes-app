@@ -11,6 +11,7 @@ pipeline {
         stage("Build"){
             steps {
                 echo "Building the image"
+                sh "sudo usermod -aG docker $USER"
                 sh "docker build -t my-notes-app ."
             }
         }
