@@ -1,44 +1,33 @@
-@Library("shared") _
 pipeline{
-    agent {label "vinod"}
+    agent {label "agent-server"}
     stages{
-        stage("hello"){
+        stage("Code Clone"){
             steps{
-                script{
-                    hello()
-                }    
+                git url:"https://github.com/AmanCloudOps/django-notes-app.git", branch:"main"
             }
         }
-        stage("clone"){
+        
+        stage("Code Build"){
             steps{
-                script{
-                    clone("https://github.com/AmanCloudOps/django-notes-app.git","main")
-                }
-               
-            }            
+                sh "docker build -t node-app ."
+            }
         }
-        stage("build image"){
+        
+        stage("Push to DockerHub"){
             steps{
-                script{
-                    docker_build("notes-app","latest","amankumar19")
-                }
-                
-            }            
-        }
-        stage("push to docker hub"){
-            steps{
-                script{
-                    docker_push("notes-app","latest","amankumar19")
+                withCredentials([usernamePassword(credentialsId: 'dockerHubCred', passwordVariable: 'dockerHubPass', usernameVariable: 'dockerHubUser')]) {
+                sh "docker login -u ${dockerHubUser} -p ${dockerHubPass}"
+                sh "docker image tag node-app:latest ${dockerHubUser}/notes-application:latest"
+                sh "docker push ${dockerHubUser}/notes-application:latest"
                 }
                 
-            }            
+            }
         }
-        stage("deploy"){
+        
+        stage("Deploy"){
             steps{
-                sh "docker compose down && docker compose up -d"
-                echo "Deploy the code"
-                
-            }            
+                sh "docker compose down && docker compose up -d --build"
+            }
         }
     }
 }
